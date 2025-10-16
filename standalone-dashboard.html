@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025년 SNOW vs Meitu 한국/일본 매출 대시보드</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f9fafb;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .button-group {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .button-group button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .button-group button:hover {
+            transform: translateY(-1px);
+        }
+        .button-group button.active {
+            color: white;
+        }
+        .button-group button:not(.active) {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        .button-group button:not(.active):hover {
+            background-color: #e5e7eb;
+        }
+        .chart-type button.active {
+            background-color: #2563eb;
+        }
+        .country-select button.active {
+            background-color: #2563eb;
+        }
+        .metric-select button.active {
+            background-color: #9333ea;
+        }
+        .divider {
+            width: 1px;
+            height: 32px;
+            background-color: #d1d5db;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .chart-container h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 24px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 500px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .summary-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+        .summary-item span:first-child {
+            color: #374151;
+            font-weight: 500;
+        }
+        .summary-item span:last-child {
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .summary-total {
+            border-top: 2px solid #e5e7eb;
+            margin-top: 12px;
+            padding-top: 12px;
+        }
+        .summary-total span:last-child {
+            color: #2563eb;
+            font-size: 20px;
+        }
+        .insights-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .insights-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .insight-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .insight-bar {
+            width: 4px;
+            border-radius: 2px;
+        }
+        .insight-content p:first-child {
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        .insight-content p:last-child {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .ml-auto {
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="button-group">
+            <div class="chart-type">
+                <button onclick="changeViewType('line')" id="btn-line" class="active">라인 차트</button>
+                <button onclick="changeViewType('bar')" id="btn-bar">바 차트</button>
+            </div>
+            <div class="divider"></div>
+            <div class="country-select">
+                <button onclick="changeCountry('worldwide')" id="btn-worldwide">전체</button>
+                <button onclick="changeCountry('combined')" id="btn-combined">한국+일본</button>
+                <button onclick="changeCountry('korea')" id="btn-korea" class="active">한국만</button>
+                <button onclick="changeCountry('japan')" id="btn-japan">일본만</button>
+            </div>
+            <div class="ml-auto metric-select">
+                <button onclick="changeMetric('revenue')" id="btn-revenue" class="active">매출</button>
+                <button onclick="changeMetric('downloads')" id="btn-downloads">다운로드</button>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2 id="chart-title">월별 매출 추이 (단위: 억원)</h2>
+            <div class="chart-wrapper">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h3><span>🇰🇷</span> 한국 시장 (9월)</h3>
+                <div class="summary-item">
+                    <span>SNOW</span>
+                    <span style="color: #ef4444;">7.6억원</span>
+                </div>
+                <div class="summary-item">
+                    <span>EPIK</span>
+                    <span style="color: #eab308;">4.4억원</span>
+                </div>
+                <div class="summary-item">
+                    <span>Meitu</span>
+                    <span style="color: #14b8a6;">4.3억원</span>
+                </div>
+                <div class="summary-item">
+                    <span>SODA</span>
+                    <span style="color: #06b6d4;">2.4억원</span>
+                </div>
+                <div class="summary-item">
+                    <span>BeautyPlus</span>
+                    <span style="color: #3b82f6;">1.4억원</span>
+                </div>
+                <div class="summary-item summary-total">
+                    <span style="font-weight: 700;">합계</span>
+                    <span>20.1억원</span>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <h3><span>🇯🇵</span> 일본 시장 (9월)</h3>
+                <div class="summary-item">
+                    <span>BeautyPlus</span>
+                    <span style="color: #3b82f6;">7.7억원</span>
+                </div>
+                <div class="summary-item">
+                    <span>Meitu</span>
+                    <span style="color: #14b8a6;">5.3억원</span>
+                </div>
+                <div class="summary-item">
+                    <span>SNOW</span>
+                    <span style="color: #ef4444;">3.2억원</span>
+                </div>
+                <div class="summary-item">
+                    <span>EPIK</span>
+                    <span style="color: #eab308;">1.2억원</span>
+                </div>
+                <div class="summary-item">
+                    <span>SODA</span>
+                    <span style="color: #22c55e;">0.7억원</span>
+                </div>
+                <div class="summary-item summary-total">
+                    <span style="font-weight: 700;">합계</span>
+                    <span>18.1억원</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="insights-card">
+            <h3><span>📊</span> 시장별 주요 인사이트</h3>
+            <div class="insight-item">
+                <div class="insight-bar" style="background-color: #ef4444;"></div>
+                <div class="insight-content">
+                    <p>한국: SNOW 압도적 우위</p>
+                    <p>SNOW가 7.6억원으로 1위, SNOW Inc. 3개 앱 합계 14.4억원</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-bar" style="background-color: #3b82f6;"></div>
+                <div class="insight-content">
+                    <p>일본: BeautyPlus 1위</p>
+                    <p>BeautyPlus 7.7억원, Meitu 5.3억원으로 2위</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-bar" style="background-color: #14b8a6;"></div>
+                <div class="insight-content">
+                    <p>Meitu: 일본에서 급성장</p>
+                    <p>일본에서 1월 2.6억 → 9월 5.3억 (2배 성장)</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-bar" style="background-color: #eab308;"></div>
+                <div class="insight-content">
+                    <p>EPIK: 한국 중심</p>
+                    <p>한국 4.4억 vs 일본 1.2억 (3.7배 차이)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const appColors = {
+            SNOW: '#04CDF6',
+            Meitu: '#F44336',
+            EPIK: '#000000',
+            SODA: '#6ED1FF',
+            BeautyPlus: '#FF69B4'
+        };
+
+        const rawData = {
+            worldwide: {
+                SNOW: [1061142, 888829, 1024569, 1041300, 973819, 979323, 959372, 931841, 989153],
+                Meitu: [4728452, 4219983, 4551717, 4488134, 4788675, 4810844, 4967824, 5060544, 5215368],
+                EPIK: [617738, 514681, 598741, 603217, 687509, 697343, 747348, 811875, 722827],
+                SODA: [265098, 246859, 274669, 340968, 284126, 276342, 283518, 278385, 253348],
+                BeautyPlus: [1873354, 1451135, 1629743, 1612395, 1655804, 1597040, 1831707, 1604560, 1595095]
+            },
+            korea: {
+                SNOW: [463510, 399578, 470341, 510251, 471646, 477812, 469076, 449377, 543936],
+                Meitu: [170599, 149739, 167711, 166512, 193449, 207444, 244903, 266177, 305297],
+                EPIK: [189259, 167965, 182018, 211247, 254005, 271162, 317932, 386451, 314809],
+                SODA: [166362, 158448, 173559, 167321, 165300, 175187, 183645, 185500, 170094],
+                BeautyPlus: [127516, 85269, 97772, 92863, 118092, 99025, 109066, 109443, 98681]
+            },
+            japan: {
+                SNOW: [370775, 299301, 337814, 321736, 282960, 261731, 248537, 251923, 227582],
+                Meitu: [182514, 194192, 220113, 241550, 256670, 275355, 286804, 317256, 381331],
+                EPIK: [50668, 46842, 58051, 57153, 57190, 76685, 86754, 93745, 83240],
+                SODA: [52204, 45081, 54575, 130230, 76366, 62134, 58940, 54300, 48991],
+                BeautyPlus: [497003, 419104, 505553, 563057, 570574, 538900, 602400, 536142, 550277]
+            }
+        };
+
+        let currentViewType = 'line';
+        let currentCountry = 'korea';
+        let currentMetric = 'revenue';
+        let chart = null;
+
+        function convertToKRW(usd) {
+            return (usd * 1400 / 100000000).toFixed(1);
+        }
+
+        function prepareChartData() {
+            const apps = ['SNOW', 'Meitu', 'EPIK', 'SODA', 'BeautyPlus'];
+            const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월'];
+            
+            if (currentCountry === 'worldwide') {
+                return {
+                    labels: months,
+                    datasets: apps.map(app => ({
+                        label: app,
+                        data: rawData.worldwide[app].map(v => parseFloat(convertToKRW(v))),
+                        borderColor: appColors[app],
+                        backgroundColor: appColors[app],
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }))
+                };
+            } else if (currentCountry === 'combined') {
+                return {
+                    labels: months,
+                    datasets: apps.map(app => ({
+                        label: app,
+                        data: rawData.korea[app].map((v, i) => 
+                            parseFloat(convertToKRW(v)) + parseFloat(convertToKRW(rawData.japan[app][i]))
+                        ),
+                        borderColor: appColors[app],
+                        backgroundColor: appColors[app],
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }))
+                };
+            } else {
+                return {
+                    labels: months,
+                    datasets: apps.map(app => ({
+                        label: app,
+                        data: rawData[currentCountry][app].map(v => parseFloat(convertToKRW(v))),
+                        borderColor: appColors[app],
+                        backgroundColor: appColors[app],
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }))
+                };
+            }
+        }
+
+        function updateChart() {
+            const data = prepareChartData();
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: currentViewType,
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '억원';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e5e7eb'
+                            },
+                            ticks: {
+                                color: '#6b7280'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#e5e7eb'
+                            },
+                            ticks: {
+                                color: '#6b7280'
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('chart-title').textContent = 
+                currentMetric === 'revenue' ? '월별 매출 추이 (단위: 억원)' : '월별 다운로드 추이';
+        }
+
+        function changeViewType(type) {
+            currentViewType = type;
+            document.querySelectorAll('.chart-type button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + type).classList.add('active');
+            updateChart();
+        }
+
+        function changeCountry(country) {
+            currentCountry = country;
+            document.querySelectorAll('.country-select button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + country).classList.add('active');
+            updateChart();
+        }
+
+        function changeMetric(metric) {
+            currentMetric = metric;
+            document.querySelectorAll('.metric-select button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + metric).classList.add('active');
+            updateChart();
+        }
+
+        // 초기 차트 생성
+        updateChart();
+    </script>
+</body>
+</html>
